@@ -1,4 +1,4 @@
-from appjar import gui
+from interface.appjar import gui
 from service.serviceAnalysis import *
 
 
