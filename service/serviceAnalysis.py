@@ -1,16 +1,16 @@
-import os
 import glob
+import os
 import re
-
-import openpyxl
-import pandas as pd
+from collections import defaultdict
+import xlsxwriter
 import matplotlib.pyplot as plt
 import numpy
-from models.forum_row import ForumRow
-from collections import defaultdict
+import openpyxl
+import pandas as pd
 from nltk.tokenize import word_tokenize
 from openpyxl import load_workbook
 
+from models.forum_row import ForumRow
 from models.statistics import Statistics
 
 merged_document_full_path = ''
@@ -22,15 +22,18 @@ statistics = {}
 posts_count = 0
 words_count = 0
 
+
 def merge_csv_files(path_to_csv_files):
+    global merged_document_full_path
+    merged_document_full_path = path_to_csv_files + '\\merged_document.csv'
+    if os.path.isfile(merged_document_full_path):
+        os.remove(merged_document_full_path)
     os.chdir(path_to_csv_files)
     extension = 'csv'
     all_filenames = [i for i in glob.glob('*.{}'.format(extension))]
     combined_csv = pd.concat([pd.read_csv(f) for f in all_filenames])
-    global merged_document_full_path
-    merged_document_full_path = path_to_csv_files + '\\merged_document.csv'
-    if not os.path.isfile(merged_document_full_path):
-        combined_csv.to_csv("merged_document.csv", index=False, encoding='utf-8-sig')
+    combined_csv.to_csv("merged_document.csv", index=False, encoding='utf-8-sig')
+
 
 
 def are_entries_empty(entries, app):
@@ -61,8 +64,8 @@ def get_all_data_from_merged_document():
     ids = csv_file['Id']
     data_topics = csv_file['Topic']
     data_texts = csv_file['Text']
-    for id, topic, text in zip(ids, data_topics, data_texts):
-        forum_data.append(ForumRow(id, topic, text))
+    for row_id, topic, text in zip(ids, data_topics, data_texts):
+        forum_data.append(ForumRow(row_id, topic, text))
 
 
 def clear_row(text):
@@ -121,12 +124,13 @@ def run_analyzer(key_word):
                         else:
                             count = 0
                             post_count = 1
-                        statistics[key][lower_word] = Statistics(count+1, post_count)
+                        statistics[key][lower_word] = Statistics(count+1, post_count, rowObject.rowId)
                         list_words.append(lower_word)
     global counter_by_words, counter_by_post
     counter_by_words = defaultdict(list)
     counter_by_post = defaultdict(list)
     for criteria in statistics:
+        list_ids = []
         count_for_text = 0
         count_for_posts = 0
         if criteria not in counter_by_words:
@@ -134,8 +138,10 @@ def run_analyzer(key_word):
         if criteria not in counter_by_post:
             counter_by_post[criteria] = 0
         for word in statistics[criteria]:
+            if statistics[criteria][word].id_number not in list_ids:
+                count_for_posts += statistics[criteria][word].post_number
             count_for_text += statistics[criteria][word].text_number
-            count_for_posts += statistics[criteria][word].post_number
+            list_ids.append(statistics[criteria][word].id_number)
         counter_by_words[criteria] = count_for_text
         counter_by_post[criteria] = count_for_posts
 
@@ -189,15 +195,17 @@ def save_picture(file_path, sheet_name, second_column_name, title, analysis_type
     number = df[second_column_name]
     label = []
     sum_number = sum(number)
+    if sum_number == 0:
+        return
     for classification_type, count in zip(type_word, number):
-        label.append(classification_type+':'+str(round(count/sum_number, 2))+'%')
+        label.append(classification_type+':'+str(round(count/sum_number, 2) * 100)+'%')
     plt.pie(number, labels=label, shadow=True, startangle=140)
     plt.axis('equal')
     plt.tight_layout()
     figure = plt.gcf()
     figure.set_size_inches(8, 6)
     lgd = plt.legend(title=title,
-                     loc="center left",
+                     loc="best",
                      bbox_to_anchor=(1, 0, 0.5, 1))
 
     plt.savefig(analysis_type+'#'+sheet_name+'.png', bbox_extra_artists=(lgd,), bbox_inches='tight', dpi=70)
