@@ -1,0 +1,7 @@
+command
+setuptools
+_vendor
+.idea
+mainWindow
+*.pyc
+/service/__pycache__/*.pyc
