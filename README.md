@@ -15,7 +15,7 @@ The output of this program is an excel file with an analytical report and some c
 To run this app, you should run the script named 'mainWindow.py', which will launch the GUI application.
 This program looks like that:
 
-![alt text](main_window.png)
+![alt text](main_window.PNG)
 
 In the first input, a user selects a folder which contains csv files with data.
 
@@ -33,7 +33,7 @@ Finally, choose any folder to store the resulting output.
 
 A screenshot example before starting an analysis:
 
-![alt text](launching_example.png)
+![alt text](launching_example.PNG)
 
 Here, we will provide statistics by texts & topics, so click the relative button, please.
 
@@ -41,7 +41,7 @@ As a result, in the folder destination, which we chose for saving the result, we
 
 Below is an example of the generated excel document.
 
-![alt text](output_example.png)
+![alt text](output_example.PNG)
 
 This program is highly useful for people who have to gain an idea and statistics about huge sets of data fast and with no need to learn how to operate with any software!
 
