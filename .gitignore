@@ -5,3 +5,4 @@ _vendor
 mainWindow
 *.pyc
 /service/__pycache__/*.pyc
+/venv/Lib/site-packages

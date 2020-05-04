@@ -1,12 +1,12 @@
 import glob
-import os
-import re
-from collections import defaultdict
-import xlsxwriter
 import matplotlib.pyplot as plt
 import numpy
 import openpyxl
+import os
 import pandas as pd
+import re
+import xlsxwriter
+from collections import defaultdict
 from nltk.tokenize import word_tokenize
 from openpyxl import load_workbook
 
@@ -33,7 +33,6 @@ def merge_csv_files(path_to_csv_files):
     all_filenames = [i for i in glob.glob('*.{}'.format(extension))]
     combined_csv = pd.concat([pd.read_csv(f) for f in all_filenames])
     combined_csv.to_csv("merged_document.csv", index=False, encoding='utf-8-sig')
-
 
 
 def are_entries_empty(entries, app):
@@ -70,7 +69,7 @@ def get_all_data_from_merged_document():
 
 def clear_row(text):
     text = text.replace('.', ' ')
-    emoji_pattern = re.compile("[" # turn it into a function
+    emoji_pattern = re.compile("["
                                u"\U0001F600-\U0001F64F"
                                u"\U0001F300-\U0001F5FF"
                                u"\U0001F680-\U0001F6FF"
@@ -107,7 +106,7 @@ def run_analyzer(key_word):
         elif key_word == 'posts':
             text = word_tokenize(clear_row(str(rowObject.topic)))
         else:
-            text = word_tokenize(clear_row(str(rowObject.topic)+' '+str(rowObject.text)))
+            text = word_tokenize(clear_row(str(rowObject.topic) + ' ' + str(rowObject.text)))
         posts_count += 1
         words_count += len(text)
         for word in text:
@@ -116,40 +115,44 @@ def run_analyzer(key_word):
                 for value in lists[key]:
                     if lower_word == value.lower():
                         if lower_word in statistics[key]:
+                            ids = statistics[key][lower_word].id_numbers
                             count = statistics[key][lower_word].text_number
                             if lower_word not in list_words:
                                 post_count = statistics[key][lower_word].post_number + 1
+                                ids.append(rowObject.rowId)
                             else:
                                 post_count = statistics[key][lower_word].post_number
                         else:
                             count = 0
                             post_count = 1
-                        statistics[key][lower_word] = Statistics(count+1, post_count, rowObject.rowId)
+                            ids = [rowObject.rowId]
+                        statistics[key][lower_word] = Statistics(count + 1, post_count, ids)
                         list_words.append(lower_word)
     global counter_by_words, counter_by_post
     counter_by_words = defaultdict(list)
     counter_by_post = defaultdict(list)
     for criteria in statistics:
-        list_ids = []
+        post_ids = []
         count_for_text = 0
-        count_for_posts = 0
         if criteria not in counter_by_words:
             counter_by_words[criteria] = 0
         if criteria not in counter_by_post:
             counter_by_post[criteria] = 0
         for word in statistics[criteria]:
-            if statistics[criteria][word].id_number not in list_ids:
-                count_for_posts += statistics[criteria][word].post_number
+            for id_number in statistics[criteria][word].id_numbers:
+                if id_number not in post_ids:
+                    for post_id in statistics[criteria][word].id_numbers:
+                        if post_id not in post_ids:
+                            post_ids.append(post_id)
             count_for_text += statistics[criteria][word].text_number
-            list_ids.append(statistics[criteria][word].id_number)
         counter_by_words[criteria] = count_for_text
-        counter_by_post[criteria] = count_for_posts
+        counter_by_post[criteria] = len(post_ids)
 
 
 def save_result_file(path, file_name):
     global statistics, counter_by_words, counter_by_post, posts_count, words_count
     os.chdir(path)
-    writer = pd.ExcelWriter(file_name+'.xlsx', engine='xlsxwriter')
+    writer = pd.ExcelWriter(file_name + '.xlsx', engine='xlsxwriter')
     for criteria in statistics:
         words = []
         number_words = []
@@ -185,8 +188,10 @@ def save_result_file(path, file_name):
                   'Number of words': [words_count]}).to_excel(writer, sheet_name='GeneralInformation', index=False)
     writer.save()
     writer.close()
-    save_picture(path+'/'+file_name+'.xlsx', 'StatisticsByWords', 'Words\' number', 'Statistics by words', file_name)
-    save_picture(path+'/'+file_name+'.xlsx', 'StatisticsByPosts', 'Posts\' number', 'Statistics by posts',file_name)
+    save_picture(path + '/' + file_name + '.xlsx', 'StatisticsByWords', 'Words\' number', 'Statistics by words',
+                 file_name)
+    save_picture(path + '/' + file_name + '.xlsx', 'StatisticsByPosts', 'Posts\' number', 'Statistics by posts',
+                 file_name)
 
 
 def save_picture(file_path, sheet_name, second_column_name, title, analysis_type):
@@ -198,7 +203,7 @@ def save_picture(file_path, sheet_name, second_column_name, title, analysis_type
     if sum_number == 0:
         return
     for classification_type, count in zip(type_word, number):
-        label.append(classification_type+':'+str(round(count/sum_number, 2) * 100)+'%')
+        label.append(classification_type + ':' + str(round(count / sum_number, 2) * 100) + '%')
     plt.pie(number, labels=label, shadow=True, startangle=140)
     plt.axis('equal')
     plt.tight_layout()
@@ -208,11 +213,11 @@ def save_picture(file_path, sheet_name, second_column_name, title, analysis_type
                      loc="best",
                      bbox_to_anchor=(1, 0, 0.5, 1))
 
-    plt.savefig(analysis_type+'#'+sheet_name+'.png', bbox_extra_artists=(lgd,), bbox_inches='tight', dpi=70)
+    plt.savefig(analysis_type + '#' + sheet_name + '.png', bbox_extra_artists=(lgd,), bbox_inches='tight', dpi=70)
     plt.close(figure)
     wb = load_workbook(file_path)
     ws = wb[sheet_name]
-    img = openpyxl.drawing.image.Image(analysis_type+'#'+sheet_name+'.png')
+    img = openpyxl.drawing.image.Image(analysis_type + '#' + sheet_name + '.png')
     img.anchor = 'D1'
     ws.add_image(img)
     wb.save(file_path)
